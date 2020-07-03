@@ -26,7 +26,7 @@ public class PlayerController : MonoBehaviour
 
     #endregion
 
-    
+    public PlayerWeaponController weaponController;
 
     private CharacterController characterController;
     private Vector2 pointerTextureOffset;
@@ -51,6 +51,7 @@ public class PlayerController : MonoBehaviour
 
         if (horizontal != 0)
         {
+            weaponController.TransitionToState(weaponController.idleState);
             if (Mathf.Abs(currentRotationSpeed) < maxRotationSpeed)
             {
                 currentRotationSpeed += horizontal;
@@ -66,6 +67,7 @@ public class PlayerController : MonoBehaviour
 
         if (vertical != 0)
         {
+            weaponController.TransitionToState(weaponController.idleState);
             if (Mathf.Abs(currentMoveSpeed) < maxMoveSpeed)
             {
                 currentMoveSpeed += accelerationSpeed * vertical;

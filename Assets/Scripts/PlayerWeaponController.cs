@@ -10,82 +10,176 @@ public class PlayerWeaponController : MonoBehaviour
     public GameObject projectile;
     public Transform weaponPosition;
     public Transform projectileStartPosition;
-    public float projectileStartingForce = 90f;
+    
     public float fireRate = 1f;
     public ParticleSystem shootEffect;
 
-    public float maxFireAngle = 80f;
-    public float fireAngle = 10f;
+    public float maxFireAngleVertical = 80f;
+    public float maxFireAngleHorizontal = 30f;
+    public float minFireAngleVerticle = 20f;
+
+    private float verticleAngleOffset = 0f;
+    private float currentHorizontalAngle = 0f;
+    private float currentVerticalAngle = 0f;
+
+    public float projectileStartingSpeed = 90f;
+    public float projectileMinimumStartSpeed = 20f;
+    public float projectileMaximumStartSpeed = 150f;
+
+    private float currentSpeedOffset = 0f;
+
+    public HUDController hudController;
 
     public Transform cameraPosition;
 
     private float lastShootTime = 0f;
-    private Vector2 pointerTextureOffset;
-    private Camera mainCamera;
 
-    private float maxShootDistance = 0f;
+
+    private Vector2 pointerTextureOffset;
+
+
+    public readonly WeaponState idleState = new WeaponIdle();
+    public readonly WeaponState aimingState = new WeaponAiming();
+    private WeaponState currentState;
+
+    private TrajectoryRenderer trajectoryRenderer;
     // Start is called before the first frame update
     void Start()
     {
         pointerTextureOffset = new Vector2(canShootTexture.width / 2, canShootTexture.height / 2);
-        Cursor.SetCursor(canShootTexture, pointerTextureOffset, CursorMode.Auto);
-
-        mainCamera = Camera.main;
+        Cursor.SetCursor(canShootTexture, pointerTextureOffset, CursorMode.Auto);        
         shootEffect.Stop();
-        calculateMaxShootDistance();
+
+        var lineRenderer = GetComponent<LineRenderer>();
+        trajectoryRenderer = new TrajectoryRenderer(lineRenderer, projectileStartPosition);
+        trajectoryRenderer.ChangeSpeed(projectileStartingSpeed);
+
+        ((WeaponIdle)idleState).SetTrajectoryRenderer(trajectoryRenderer);
+        ((WeaponAiming)aimingState).SetTrajectoryRenderer(trajectoryRenderer);
+        ((WeaponAiming)aimingState).OnAngleChange += OnAngleChanged;
+        ((WeaponAiming)aimingState).OnVelocityChange += OnVelocityChanged;
+
+        currentState = idleState;
     }
 
     // Update is called once per frame
     void Update()
     {
-        mainCamera.transform.position = cameraPosition.position;
-        mainCamera.transform.LookAt(weaponPosition);
 
         if (lastShootTime > 0)
         {
             lastShootTime -= Time.deltaTime;
         }
-        else if (lastShootTime < 0)
+
+        if (lastShootTime < 0)
         {
             lastShootTime = 0;
-        }            
-
-        RaycastHit mouseHit;
-        Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out mouseHit);
-
-        var hitPosition = mouseHit.point;
-
-        var angleBetweenMouseAndGun = Vector3.Angle(projectileStartPosition.forward, hitPosition);
-        //Debug.Log("Angle = " + angleBetweenMouseAndGun);
-        //if (Mathf.Abs(angleBetweenMouseAndGun) < fireAngle)
-        if (Vector3.Distance(hitPosition, projectileStartPosition.position) < maxShootDistance)
-        {
-            Cursor.SetCursor(canShootTexture, pointerTextureOffset, CursorMode.Auto);
-            if (Input.GetMouseButton((int)MouseButtons.RMB))
-            {
-                if (lastShootTime == 0)
-                {
-                    fire(hitPosition);
-                }
-            }
         }
-        else
-        {
-            Cursor.SetCursor(cantShootTexture, pointerTextureOffset, CursorMode.Auto);
-        }
+
+        currentState.Update(this);
     }
 
-    private void fire(Vector3 target)
+    public void TransitionToState(WeaponState state)
     {
-        Debug.Log("Firing at: " + target);
-        Debug.Log("Projectile start position: " + projectileStartPosition.position);
+        Debug.Log("Transition from " + currentState + " to " + state);
+        currentState.OnStateExit(this);
+        currentState = state;
+        currentState.OnStateEnter(this);
+    }
 
+    public void StartAiming(Vector3 position)
+    {
+        var rotation = weaponPosition.rotation;
+        weaponPosition.rotation = Quaternion.identity;
+        weaponPosition.Rotate(0, 0, -90);
+        var shootPosition = weaponPosition.forward;
+        weaponPosition.rotation = rotation;
+        currentHorizontalAngle = Vector2.Angle(new Vector2(shootPosition.x, shootPosition.z), new Vector2(position.x, position.z));
+        currentVerticalAngle = Vector2.Angle(new Vector2(shootPosition.x, shootPosition.y), new Vector2(position.x, position.y));
+
+        weaponPosition.transform.LookAt(position);
+
+        hudController.SetAngle(currentVerticalAngle);
+        ((WeaponAiming)aimingState).SetTarget(position);
+        
+
+        TransitionToState(aimingState);
+    }
+
+    public bool CanShoot()
+    {
+        return lastShootTime == 0;
+    }
+
+    public void SetCanShootCursor()
+    {
+        Cursor.SetCursor(canShootTexture, pointerTextureOffset, CursorMode.Auto);
+    }
+
+    public void SetCantShootCursor()
+    {
+        Cursor.SetCursor(cantShootTexture, pointerTextureOffset, CursorMode.Auto);
+    }
+
+    private void OnAngleChanged(float delta)
+    {
+        verticleAngleOffset += delta;
+        if (currentVerticalAngle + verticleAngleOffset > maxFireAngleVertical)
+        {
+            verticleAngleOffset = maxFireAngleVertical - currentVerticalAngle;
+        }
+        else if (currentVerticalAngle + verticleAngleOffset < minFireAngleVerticle)
+        {
+            verticleAngleOffset = currentVerticalAngle + minFireAngleVerticle;
+        }
+
+
+
+        var hitPoint = trajectoryRenderer.GetHitPoint();
+        var distance = Vector3.Distance(projectileStartPosition.forward, hitPoint);
+
+        var rotationY = weaponPosition.transform.rotation.y;
+        Debug.Log("y " + rotationY);
+        weaponPosition.transform.rotation = Quaternion.identity;
+        //weaponPosition.transform.Rotate(0, rotationY, 0);
+
+        weaponPosition.transform.Rotate(currentVerticalAngle + verticleAngleOffset, -90 + (90 - currentHorizontalAngle), 0);
+        Debug.Log("y " + rotationY);
+        hudController.SetDistance(distance);
+        hudController.SetAngle(currentVerticalAngle + verticleAngleOffset);
+
+        trajectoryRenderer.UpdateSimulation();
+    }
+
+    private void OnVelocityChanged(float delta)
+    {
+        currentSpeedOffset += delta;
+        if (projectileStartingSpeed + currentSpeedOffset > projectileMaximumStartSpeed)
+        {
+            currentSpeedOffset = projectileStartingSpeed + currentSpeedOffset - projectileMaximumStartSpeed;
+        }
+        else if (projectileStartingSpeed + currentSpeedOffset < projectileMinimumStartSpeed)
+        {
+            currentSpeedOffset = projectileStartingSpeed + currentSpeedOffset + projectileMinimumStartSpeed;
+        }
+
+        trajectoryRenderer.ChangeSpeed(currentSpeedOffset + projectileStartingSpeed);
+        trajectoryRenderer.UpdateSimulation();
+
+        var hitPoint = trajectoryRenderer.GetHitPoint();
+        var distance = Vector3.Distance(projectileStartPosition.forward, hitPoint);
+
+        hudController.SetDistance(distance);
+        hudController.SetVelocity(currentSpeedOffset + projectileStartingSpeed);
+    }
+
+    public void Fire(Vector3 target)
+    {
         lastShootTime = fireRate;
         shootEffect.Play();
         var instProjectile = Instantiate(projectile);
         instProjectile.transform.position = projectileStartPosition.position;
-        instProjectile.transform.LookAt(target);
-        instProjectile.transform.Rotate(-maxFireAngle, 0, 0);
+        instProjectile.transform.LookAt(projectileStartPosition.forward);
 
         var projectileRigidbody = instProjectile.GetComponent<Rigidbody>();
         if (projectileRigidbody == null)
@@ -94,69 +188,11 @@ public class PlayerWeaponController : MonoBehaviour
         }
         else
         {
-            projectileRigidbody.AddForce(instProjectile.transform.forward * projectileStartingForce, ForceMode.Impulse);
+            projectileRigidbody.AddForce(projectileStartPosition.forward * (projectileStartingSpeed + currentSpeedOffset), ForceMode.VelocityChange);
         }
-    }
 
-
-    //IEnumerator SimulateProjectile()
-    //{
-    //    // Short delay added before Projectile is thrown
-    //    yield return new WaitForSeconds(1.5f);
-
-    //    // Move projectile to the position of throwing object + add some offset if needed.
-    //    Projectile.position = myTransform.position + new Vector3(0, 0.0f, 0);
-
-    //    // Calculate distance to target
-    //    float target_Distance = Vector3.Distance(Projectile.position, Target.position);
-
-    //    // Calculate the velocity needed to throw the object to the target at specified angle.
-    //    float projectile_Velocity = target_Distance / (Mathf.Sin(2 * firingAngle * Mathf.Deg2Rad) / gravity);
-
-    //    // Extract the X  Y componenent of the velocity
-    //    float Vx = Mathf.Sqrt(projectile_Velocity) * Mathf.Cos(firingAngle * Mathf.Deg2Rad);
-    //    float Vy = Mathf.Sqrt(projectile_Velocity) * Mathf.Sin(firingAngle * Mathf.Deg2Rad);
-
-    //    // Calculate flight time.
-    //    float flightDuration = target_Distance / Vx;
-
-    //    // Rotate projectile to face the target.
-    //    Projectile.rotation = Quaternion.LookRotation(Target.position - Projectile.position);
-
-    //    float elapse_time = 0;
-
-    //    while (elapse_time < flightDuration)
-    //    {
-    //        Projectile.Translate(0, (Vy - (gravity * elapse_time)) * Time.deltaTime, Vx * Time.deltaTime);
-
-    //        elapse_time += Time.deltaTime;
-
-    //        yield return null;
-    //    }
-    //}
-
-    private void calculateMaxShootDistance()
-    {
-        var rb = projectile.GetComponent<Rigidbody>();
-        var baseRotation = projectileStartPosition.rotation;
-        projectileStartPosition.Rotate(-maxFireAngle, 0, 0);
-        var impulse = projectileStartPosition.forward.magnitude * projectileStartingForce;
-        var speed = impulse / rb.mass;
-
-        maxShootDistance = speed * speed * Mathf.Sin(2 * maxFireAngle * Mathf.Deg2Rad) / (2 * Physics.gravity.y);
-
-        projectileStartPosition.rotation = baseRotation;
-        Debug.LogWarning("Speed: " + speed);
-        Debug.LogWarning("impulse: " + impulse);
-        Debug.LogWarning("Max shoot distance: " + maxShootDistance);
-    }
-
-    private void calculateAngleBetweenProjectileAndTarget(Vector3 target)
-    {
-        var rb = projectile.GetComponent<Rigidbody>();
-        var impulse = projectileStartingForce * Time.fixedDeltaTime;
-        var speed = impulse / rb.mass;
-
-
+        verticleAngleOffset = 0;
+        trajectoryRenderer.SetAngleOffset(0);
+        TransitionToState(idleState);
     }
 }
