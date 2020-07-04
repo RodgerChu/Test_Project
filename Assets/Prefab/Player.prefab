@@ -199,13 +199,13 @@ MonoBehaviour:
   cantShootTexture: {fileID: 2800000, guid: 389e0cb7639204b64ae7dfa78fdaa61d, type: 3}
   projectile: {fileID: 4835396548929514052, guid: 6a97b7702256145e1bdf1901881ce58c,
     type: 3}
-  weaponPosition: {fileID: 1375376188}
+  weaponPosition: {fileID: 6367158804798043824}
   projectileStartPosition: {fileID: 8519010993659098046}
   fireRate: 1
   shootEffect: {fileID: 9164265845984224789}
-  maxFireAngleVertical: 30
+  maxFireAngleVertical: 10
   maxFireAngleHorizontal: 30
-  minFireAngleVerticle: -60
+  minFireAngleVerticle: -20
   projectileStartingSpeed: 90
   projectileMinimumStartSpeed: 20
   projectileMaximumStartSpeed: 150
@@ -5369,7 +5369,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3095163123994917857}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 1.04}
+  m_LocalPosition: {x: -0, y: 0, z: 1.86}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1375376188}
@@ -5398,14 +5398,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7558903752949139037}
-  m_LocalRotation: {x: -0, y: -0.70711154, z: -0, w: 0.7071021}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: -0.49, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 6420045824283483746}
   m_Father: {fileID: 8235960301390662669}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: -90.00101, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!1 &8120994442165823309
 GameObject:
   m_ObjectHideFlags: 0

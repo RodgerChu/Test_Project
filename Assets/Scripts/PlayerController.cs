@@ -2,11 +2,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(PlayerWeaponController))]
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
 
     #region Movement speed
+    [Space]
+    [Header("Move speed parameters")]
     public float accelerationSpeed = 0.1f;
     public float maxMoveSpeed = 1f;
     public float stoppingSpeed = 0.2f;
@@ -17,7 +20,7 @@ public class PlayerController : MonoBehaviour
 
 
     #region Rotating
-
+    [Space]
     public float rotationAcceleration = 0.1f;
     public float maxRotationSpeed = 1f;
     public float rotationStopSpeed = 0.2f;
@@ -26,7 +29,7 @@ public class PlayerController : MonoBehaviour
 
     #endregion
 
-    public PlayerWeaponController weaponController;
+    private PlayerWeaponController weaponController;
 
     private CharacterController characterController;
     private Vector2 pointerTextureOffset;
@@ -35,6 +38,7 @@ public class PlayerController : MonoBehaviour
     private void Start()
     {
         characterController = GetComponent<CharacterController>();
+        weaponController = GetComponent<PlayerWeaponController>();
     }
 
     private void Update()
@@ -51,7 +55,7 @@ public class PlayerController : MonoBehaviour
 
         if (horizontal != 0)
         {
-            weaponController.TransitionToState(weaponController.idleState);
+            weaponController.StopSimulating();
             if (Mathf.Abs(currentRotationSpeed) < maxRotationSpeed)
             {
                 currentRotationSpeed += horizontal;
@@ -67,7 +71,7 @@ public class PlayerController : MonoBehaviour
 
         if (vertical != 0)
         {
-            weaponController.TransitionToState(weaponController.idleState);
+            weaponController.StopSimulating();
             if (Mathf.Abs(currentMoveSpeed) < maxMoveSpeed)
             {
                 currentMoveSpeed += accelerationSpeed * vertical;
