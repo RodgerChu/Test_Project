@@ -35,13 +35,11 @@ public class PlayerWeaponController : MonoBehaviour
     public float maxFireAngleVertical = 80f;    
     public float minFireAngleVerticle = 20f;
     private float verticleAngleOffset = 0f;
-    private float currentVerticalAngle = 0f;
 
     [Space]
     [Header("Weapon horizontal angle params")]
     public float maxFireAngleHorizontal = 30f;
-    private float horizontalAngleOffset = 0f;
-    private float currentHorizontalAngle = 0f;    
+    private float horizontalAngleOffset = 0f;   
 
     #endregion
 
@@ -116,14 +114,14 @@ public class PlayerWeaponController : MonoBehaviour
     {
         verticleAngleOffset += delta;
         // '>' 'cuz rotating to the bottom performed with positive angle
-        if (currentVerticalAngle + verticleAngleOffset > minFireAngleVerticle)
+        if (verticleAngleOffset > minFireAngleVerticle)
         {
-            verticleAngleOffset = minFireAngleVerticle - currentVerticalAngle;
+            verticleAngleOffset = minFireAngleVerticle;
         }
         // add '-' to maxFireAngleVertical 'cuz rotating to top performed with negative angle
-        else if (currentVerticalAngle + verticleAngleOffset < -maxFireAngleVertical)
+        else if (verticleAngleOffset < -maxFireAngleVertical)
         {
-            verticleAngleOffset = -maxFireAngleVertical - currentVerticalAngle;
+            verticleAngleOffset = -maxFireAngleVertical;
         }
 
         var hitPoint = trajectoryRenderer.GetHitPoint();
@@ -134,32 +132,32 @@ public class PlayerWeaponController : MonoBehaviour
         trajectoryRenderer.UpdateSimulation();
 
         hudController?.SetDistance(distance);
-        hudController?.SetVerticleAngle(currentVerticalAngle + verticleAngleOffset);        
+        hudController?.SetVerticleAngle(verticleAngleOffset);        
     }
 
     private void OnHorizontalAngleChanged(float delta)
     {
         horizontalAngleOffset += delta;
-        if (currentHorizontalAngle + horizontalAngleOffset > maxFireAngleHorizontal)
+        if (horizontalAngleOffset > maxFireAngleHorizontal)
         {
-            horizontalAngleOffset = maxFireAngleHorizontal - currentHorizontalAngle;
+            horizontalAngleOffset = maxFireAngleHorizontal;
         }
-        else if (currentHorizontalAngle + horizontalAngleOffset < -maxFireAngleHorizontal)
+        else if (horizontalAngleOffset < -maxFireAngleHorizontal)
         {
-            horizontalAngleOffset = -maxFireAngleHorizontal - currentHorizontalAngle;
+            horizontalAngleOffset = -maxFireAngleHorizontal;
         }
 
         performRotation();
 
         trajectoryRenderer.UpdateSimulation();
-        hudController?.SetHorizontalAngle(currentHorizontalAngle + horizontalAngleOffset);
+        hudController?.SetHorizontalAngle(horizontalAngleOffset);
     }
 
     private void performRotation()
     {
         weaponPosition.transform.localRotation = Quaternion.Euler(new Vector3(0, 0, 0));
         // -90 on Y angle to make weapon look forward (according to tank)
-        weaponPosition.transform.localRotation = Quaternion.Euler(new Vector3(currentVerticalAngle + verticleAngleOffset, -90 - (currentHorizontalAngle + horizontalAngleOffset), 0));
+        weaponPosition.transform.localRotation = Quaternion.Euler(new Vector3(verticleAngleOffset, -90 - horizontalAngleOffset, 0));
     }
 
     private void OnVelocityChanged(float delta)
